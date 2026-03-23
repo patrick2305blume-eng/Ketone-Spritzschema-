@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ketoazidose-Warnplan</title>
+    <title>Ketoazidose-Vermeidungsplan</title>
     <style>
         body { font-family: -apple-system, system-ui, sans-serif; background: #121212; color: white; padding: 15px; line-height: 1.5; }
         .container { max-width: 500px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 15px; border: 1px solid #333; }
@@ -17,19 +17,18 @@
         .danger { background: #441a1a; border-left: 5px solid #e74c3c; }
         .safe { background: #1a4423; border-left: 5px solid #2ecc71; }
         
-        .emergency { background: #ff0000; color: white; padding: 15px; border-radius: 10px; text-align: center; font-weight: bold; margin-top: 20px; animation: blink 1s infinite; }
-        @keyframes blink { 0% {opacity: 1;} 50% {opacity: 0.7;} 100% {opacity: 1;} }
+        .emergency-box { background: #ff0000; color: white; padding: 15px; border-radius: 10px; text-align: center; font-weight: bold; margin-top: 20px; border: 2px solid white; }
         
         ul { padding-left: 20px; margin: 10px 0; }
-        li { margin-bottom: 5px; }
+        li { margin-bottom: 8px; }
         .step-btn { background: #3498db; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .highlight { font-weight: bold; text-decoration: underline; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>⚠️ Keton-Warnplan</h2>
-    <p style="font-size: 12px; color: #888; text-align: center;">Basierend auf dem Ketoazidose-Vermeidungsschema</p>
+    <h2>⚠️ Ketoazidose-Plan</h2>
 
     <div class="input-group">
         <label>Blutzucker-Einheit:</label>
@@ -41,7 +40,7 @@
 
     <div class="input-group">
         <label id="bz-label">Aktueller Blutzucker:</label>
-        <input type="number" id="bz-value" placeholder="Wert eingeben...">
+        <input type="number" id="bz-value" placeholder="z.B. 260">
     </div>
 
     <button class="step-btn" onclick="checkBZ()">Status prüfen</button>
@@ -50,31 +49,31 @@
         <label>Keton-Messung:</label>
         <select id="keton-type" onchange="toggleKetonInput()">
             <option value="">-- Messart wählen --</option>
-            <option value="blood">Blut (mmol/l)</option>
-            <option value="urine">Urin (Farbe/Kreuze)</option>
+            <option value="blood">Blut-Keton (mmol/l)</option>
+            <option value="urine">Urin-Keton (Azetontest)</option>
         </select>
 
         <div id="blood-input" style="display:none; margin-top:10px;">
-            <label>Blut-Ketonwert:</label>
-            <input type="number" id="blood-keton" step="0.1" placeholder="z.B. 0.8">
+            <label>Messwert im Blut:</label>
+            <input type="number" id="blood-keton" step="0.1" placeholder="z.B. 1.6">
         </div>
 
         <div id="urine-input" style="display:none; margin-top:10px;">
-            <label>Urin-Ergebnis:</label>
+            <label>Ergebnis Urinstix:</label>
             <select id="urine-keton">
-                <option value="0">Negativ / Normal</option>
-                <option value="1">Leicht (+ / 1,5 mmol)</option>
-                <option value="2">Hoch (++ oder +++)</option>
+                <option value="0">Negativ (-)</option>
+                <option value="1">Azeton + (leicht)</option>
+                <option value="2">Azeton ++ / +++ (hoch)</option>
             </select>
         </div>
-        <button class="step-btn" style="background: #e67e22;" onclick="checkKetones()">Anweisungen zeigen</button>
+        <button class="step-btn" style="background: #e67e22;" onclick="checkKetones()">Handlungsplan anzeigen</button>
     </div>
 
     <div id="result" class="instruction-card"></div>
 
-    <div class="emergency">
-        🚨 NOTARZT RUFEN (112):<br>
-        Bei Erbrechen, Atemnot oder Bewusstseinstrübung!
+    <div class="emergency-box">
+        🚨 ACHTUNG:<br>
+        Bei Übelkeit, Erbrechen, Atemnot oder obstartigem Mundgeruch -> SOFORT NOTARZT (112) RUFEN!
     </div>
 </div>
 
@@ -93,14 +92,13 @@ function checkBZ() {
 
     if (bz >= limit) {
         document.getElementById('keton-section').style.display = 'block';
-        res.innerHTML = "<strong>Schritt 1:</strong> Korrektur-Insulin laut Plan geben. Nach 1 Std. erneut kontrollieren. Bleibt der Wert hoch? Dann jetzt Ketone messen!";
+        res.innerHTML = "<strong>BZ über Grenzwert!</strong><br>1. Korrektur-Insulin laut Plan geben.<br>2. Nach 1 Stunde erneut kontrollieren.<br>3. <span class='highlight'>Jetzt Ketone messen!</span>";
         res.className = "instruction-card warning";
         res.style.display = "block";
     } else {
-        res.innerHTML = "Blutzucker im Zielbereich oder unter Warnschwelle. Weiterhin beobachten.";
+        res.innerHTML = "Blutzucker unter Warnschwelle. Bei Unwohlsein trotzdem stündlich kontrollieren.";
         res.className = "instruction-card safe";
         res.style.display = "block";
-        document.getElementById('keton-section').style.display = 'none';
     }
 }
 
@@ -113,7 +111,7 @@ function toggleKetonInput() {
 function checkKetones() {
     const type = document.getElementById('keton-type').value;
     const res = document.getElementById('result');
-    let level = 0; // 0=safe, 1=warning, 2=danger
+    let level = 0; 
 
     if (type === 'blood') {
         const val = parseFloat(document.getElementById('blood-keton').value);
@@ -124,18 +122,32 @@ function checkKetones() {
         level = parseInt(document.getElementById('urine-keton').value);
     }
 
-    let html = "";
+    let header = "";
+    let rules = "";
+    
     if (level === 0) {
         res.className = "instruction-card safe";
-        html = "<strong>Entwarnung:</strong> Ketontest negativ. Problem gelöst, aber BZ weiter stündlich beobachten bis unter 200 mg/dl (11 mmol/l).";
-    } else if (level === 1) {
-        res.className = "instruction-card warning";
-        html = "<strong>ACHTUNG (Leichte Ketose):</strong><ul><li>Sofort Korrektur mit Pen/Spritze (auch bei Pumpe!)</li><li>Viel trinken (0,5-1L Wasser/Std.)</li><li>Kein Sport!</li><li>Bei Pumpe: Katheter wechseln!</li><li>Kontrolle nach 1 Std.</li></ul>";
+        header = "✅ Problem vorerst gelöst!";
+        rules = "<li>Stündliche Messung bis BZ < 200 mg/dl (11 mmol/l).</li><li>Bei Absinken unter 180 mg/dl: 1-2 KE essen (z.B. Banane) OHNE zu bolen!</li>";
     } else {
-        res.className = "instruction-card danger";
-        html = "<strong>GEFAHR (Starke Ketose):</strong><ul><li><strong>DOPPELTES</strong> Korrektur-Insulin mit Pen/Spritze!</li><li>Sofort Diabetesteam/Klinik kontaktieren</li><li>Viel trinken, nicht einschlafen!</li><li>Katheter wechseln!</li><li>Bei Übelkeit/Erbrechen -> Notaufnahme!</li></ul>";
+        const isDanger = (level === 2);
+        res.className = isDanger ? "instruction-card danger" : "instruction-card warning";
+        header = isDanger ? "🔴 ALARM: Starke Ketoazidose-Gefahr!" : "🟠 WARNUNG: Azeton positiv!";
+        
+        const insulinAction = isDanger ? "<span class='highlight'>DOPPELTES Korrekturinsulin</span> per Pen/Spritze!" : "Korrekturinsulin laut Plan per Pen/Spritze!";
+        
+        rules = `
+            <li>${insulinAction}</li>
+            <li><strong>Viel trinken:</strong> ca. 0,5 - 1 Liter pro Stunde (Wasser, Tee).</li>
+            <li><span class='highlight'>KEINE körperliche Aktivität!</span> (Absolute Ruhe)</li>
+            <li><strong>Nicht einschlafen!</strong></li>
+            <li>Bei Pumpentherapie: <strong>Katheter wechseln!</strong></li>
+            <li>BZ- und Azetonkontrolle nach 1 Std. wiederholen.</li>
+            ${isDanger ? "<li><strong>Sofortige Rücksprache mit der Diabetesstation!</strong></li>" : ""}
+        `;
     }
-    res.innerHTML = html;
+    
+    res.innerHTML = `<strong>${header}</strong><ul>${rules}</ul>`;
     res.style.display = "block";
 }
 </script>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ketoazidose-Warnplan</title>
+    <style>
+        body { font-family: -apple-system, system-ui, sans-serif; background: #121212; color: white; padding: 15px; line-height: 1.5; }
+        .container { max-width: 500px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 15px; border: 1px solid #333; }
+        h2 { color: #e74c3c; text-align: center; margin-top: 0; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-size: 14px; margin-bottom: 5px; color: #aaa; }
+        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #2c2c2c; color: white; box-sizing: border-box; font-size: 16px; }
+        
+        .instruction-card { margin-top: 20px; padding: 15px; border-radius: 10px; display: none; }
+        .warning { background: #442a1a; border-left: 5px solid #e67e22; }
+        .danger { background: #441a1a; border-left: 5px solid #e74c3c; }
+        .safe { background: #1a4423; border-left: 5px solid #2ecc71; }
+        
+        .emergency { background: #ff0000; color: white; padding: 15px; border-radius: 10px; text-align: center; font-weight: bold; margin-top: 20px; animation: blink 1s infinite; }
+        @keyframes blink { 0% {opacity: 1;} 50% {opacity: 0.7;} 100% {opacity: 1;} }
+        
+        ul { padding-left: 20px; margin: 10px 0; }
+        li { margin-bottom: 5px; }
+        .step-btn { background: #3498db; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>⚠️ Keton-Warnplan</h2>
+    <p style="font-size: 12px; color: #888; text-align: center;">Basierend auf dem Ketoazidose-Vermeidungsschema</p>
+
+    <div class="input-group">
+        <label>Blutzucker-Einheit:</label>
+        <select id="bz-unit" onchange="resetView()">
+            <option value="mgdl">mg/dl</option>
+            <option value="mmol">mmol/l</option>
+        </select>
+    </div>
+
+    <div class="input-group">
+        <label id="bz-label">Aktueller Blutzucker:</label>
+        <input type="number" id="bz-value" placeholder="Wert eingeben...">
+    </div>
+
+    <button class="step-btn" onclick="checkBZ()">Status prüfen</button>
+
+    <div id="keton-section" style="display:none; margin-top: 20px; border-top: 1px solid #333; padding-top: 20px;">
+        <label>Keton-Messung:</label>
+        <select id="keton-type" onchange="toggleKetonInput()">
+            <option value="">-- Messart wählen --</option>
+            <option value="blood">Blut (mmol/l)</option>
+            <option value="urine">Urin (Farbe/Kreuze)</option>
+        </select>
+
+        <div id="blood-input" style="display:none; margin-top:10px;">
+            <label>Blut-Ketonwert:</label>
+            <input type="number" id="blood-keton" step="0.1" placeholder="z.B. 0.8">
+        </div>
+
+        <div id="urine-input" style="display:none; margin-top:10px;">
+            <label>Urin-Ergebnis:</label>
+            <select id="urine-keton">
+                <option value="0">Negativ / Normal</option>
+                <option value="1">Leicht (+ / 1,5 mmol)</option>
+                <option value="2">Hoch (++ oder +++)</option>
+            </select>
+        </div>
+        <button class="step-btn" style="background: #e67e22;" onclick="checkKetones()">Anweisungen zeigen</button>
+    </div>
+
+    <div id="result" class="instruction-card"></div>
+
+    <div class="emergency">
+        🚨 NOTARZT RUFEN (112):<br>
+        Bei Erbrechen, Atemnot oder Bewusstseinstrübung!
+    </div>
+</div>
+
+<script>
+function resetView() {
+    document.getElementById('bz-label').innerText = `Aktueller Blutzucker (${document.getElementById('bz-unit').value}):`;
+    document.getElementById('keton-section').style.display = 'none';
+    document.getElementById('result').style.display = 'none';
+}
+
+function checkBZ() {
+    const bz = parseFloat(document.getElementById('bz-value').value);
+    const unit = document.getElementById('bz-unit').value;
+    const limit = (unit === 'mgdl') ? 250 : 14;
+    const res = document.getElementById('result');
+
+    if (bz >= limit) {
+        document.getElementById('keton-section').style.display = 'block';
+        res.innerHTML = "<strong>Schritt 1:</strong> Korrektur-Insulin laut Plan geben. Nach 1 Std. erneut kontrollieren. Bleibt der Wert hoch? Dann jetzt Ketone messen!";
+        res.className = "instruction-card warning";
+        res.style.display = "block";
+    } else {
+        res.innerHTML = "Blutzucker im Zielbereich oder unter Warnschwelle. Weiterhin beobachten.";
+        res.className = "instruction-card safe";
+        res.style.display = "block";
+        document.getElementById('keton-section').style.display = 'none';
+    }
+}
+
+function toggleKetonInput() {
+    const type = document.getElementById('keton-type').value;
+    document.getElementById('blood-input').style.display = (type === 'blood') ? 'block' : 'none';
+    document.getElementById('urine-input').style.display = (type === 'urine') ? 'block' : 'none';
+}
+
+function checkKetones() {
+    const type = document.getElementById('keton-type').value;
+    const res = document.getElementById('result');
+    let level = 0; // 0=safe, 1=warning, 2=danger
+
+    if (type === 'blood') {
+        const val = parseFloat(document.getElementById('blood-keton').value);
+        if (val < 0.6) level = 0;
+        else if (val >= 0.6 && val <= 1.5) level = 1;
+        else if (val > 1.5) level = 2;
+    } else {
+        level = parseInt(document.getElementById('urine-keton').value);
+    }
+
+    let html = "";
+    if (level === 0) {
+        res.className = "instruction-card safe";
+        html = "<strong>Entwarnung:</strong> Ketontest negativ. Problem gelöst, aber BZ weiter stündlich beobachten bis unter 200 mg/dl (11 mmol/l).";
+    } else if (level === 1) {
+        res.className = "instruction-card warning";
+        html = "<strong>ACHTUNG (Leichte Ketose):</strong><ul><li>Sofort Korrektur mit Pen/Spritze (auch bei Pumpe!)</li><li>Viel trinken (0,5-1L Wasser/Std.)</li><li>Kein Sport!</li><li>Bei Pumpe: Katheter wechseln!</li><li>Kontrolle nach 1 Std.</li></ul>";
+    } else {
+        res.className = "instruction-card danger";
+        html = "<strong>GEFAHR (Starke Ketose):</strong><ul><li><strong>DOPPELTES</strong> Korrektur-Insulin mit Pen/Spritze!</li><li>Sofort Diabetesteam/Klinik kontaktieren</li><li>Viel trinken, nicht einschlafen!</li><li>Katheter wechseln!</li><li>Bei Übelkeit/Erbrechen -> Notaufnahme!</li></ul>";
+    }
+    res.innerHTML = html;
+    res.style.display = "block";
+}
+</script>
+</body>
+</html>
